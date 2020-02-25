@@ -53,12 +53,13 @@ class FileUpload extends PolymerElement {
           background: #ddd;
         }
         #fileElem {
-          display: none;
+          visibility: hidden
         }
       </style>
       <div id="dropArea">
         <form class="my-form">
           <input type="file" id="fileElem" accept="image/*,application/pdf" on-change="_handleFiles">
+          <br>
           <label class="button" for="fileElem">Select files</label>
         </form>
         <progress id="progressBar" max=100 value=0></progress>
@@ -68,10 +69,14 @@ class FileUpload extends PolymerElement {
   }
   static get properties() {
     return {
-      prop1: {
+      typeOfOutput: {
         type: String,
-        value: 'file-upload',
+        value: 'blob',
+        observer: '_selectFile'
       },
+      Invoke: {
+        observer: '_selectFile'
+      }
     };
   }
 
@@ -100,7 +105,19 @@ class FileUpload extends PolymerElement {
     ;['dragleave', 'drop'].forEach(eventName => {
       this.dropArea.addEventListener(eventName, this._unhighlight, false)
     })
-    this.dropArea.addEventListener('drop', this._handleDrop, false)
+    this.dropArea.addEventListener('drop', this._handleDrop.bind(this), false)
+  }
+
+  _selectFile() {
+    this.$.fileElem.click()
+    // var elem = this.$.fileElem
+    // console.log(elem)
+    // console.log(document.createEvent)
+    // if(elem && document.createEvent) {
+    //   var evt = document.createEvent("MouseEvents");
+    //   evt.initEvent("click", true, false);
+    //   elem.dispatchEvent(evt);
+    // }
   }
 
   _initializeProgress(numfiles) {
@@ -110,8 +127,8 @@ class FileUpload extends PolymerElement {
   }
 
   _progressDone() {
-    filesDone++
-    progressBar.value = filesDone / filesToDo * 100
+    this.filesDone++
+    this.progressBar.value = this.filesDone / this.filesToDo * 100
   }
 
   _preventDefaults (e) {
@@ -120,44 +137,49 @@ class FileUpload extends PolymerElement {
   }
 
   _highlight(e) {
-    this.dropArea.classList.add('highlight')
+    e.path[0].classList.add('highlight')
   }
   
   _unhighlight(e) {
-    this.dropArea.classList.remove('highlight')
+    e.path[0].classList.remove('highlight')
   }
 
   _handleDrop(e) {
     let dt = e.dataTransfer
-    let files = dt.files
-  
-    this._handleFiles(files)
-  }
-
-  _handleFiles(e) {
-    console.log(e)
-    var files = e.path[0].files[0]
-    console.log(files)
+    let files = dt.files[0]
     this._initializeProgress(1)
     this._uploadFile(files)
     this._previewFile(files)
-    // files.forEach(file => this._uploadFile(file))
-    // files.forEach(file => this._previewFile(file))
+  }
+
+  _handleFiles(e) {
+    var files = e.path[0].files[0]
+    this._initializeProgress(1)
+    this._uploadFile(files)
+    this._previewFile(files)
+  }
+
+  _getBase64(file) {
+    var reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => {
+      console.log(reader.result)
+      console.log(typeof reader.result)
+      this.dispatchEvent(new CustomEvent("file-output", {detail: reader.result.split(',')[1]}));
+    };
+    reader.onerror = error => reject(error);
   }
   
   _uploadFile(file) {
-    let url = 'YOUR URL HERE'
-    let formData = new FormData()
-  
-    formData.append('file', file)
-    console.log(file)
-  
-    // fetch(url, {
-    //   method: 'POST',
-    //   body: formData
-    // })
-    // .then(_progressDone)
-    // .catch(() => { /* Error. Inform the user */ })
+    if (this.typeOfOutput == 'blob') {
+      const fileAsBlob = new Blob([file], {type : file.type});
+      console.log(fileAsBlob)
+      console.log(typeof fileAsBlob)
+      this.dispatchEvent(new CustomEvent("file-output", {detail: fileAsBlob}));
+    } else if (this.typeOfOutput == 'base64') {
+      this._getBase64(file);
+    }
+    this._progressDone()
   }
 
   _previewFile(file) {

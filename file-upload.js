@@ -1,5 +1,4 @@
 import {html, PolymerElement} from '@polymer/polymer/polymer-element.js';
-
 /**
  * `file-upload`
  * To upload file
@@ -71,11 +70,7 @@ class FileUpload extends PolymerElement {
     return {
       typeOfOutput: {
         type: String,
-        value: 'blob',
-        observer: '_selectFile'
-      },
-      Invoke: {
-        observer: '_selectFile'
+        value: 'base64'
       }
     };
   }
@@ -165,7 +160,11 @@ class FileUpload extends PolymerElement {
     reader.onload = () => {
       console.log(reader.result)
       console.log(typeof reader.result)
-      this.dispatchEvent(new CustomEvent("file-output", {detail: reader.result.split(',')[1]}));
+      var obj = {
+        base64: reader.result.split(',')[1],
+        name: file.name
+      }
+      this.dispatchEvent(new CustomEvent("file-output", {detail: obj}));
     };
     reader.onerror = error => reject(error);
   }
@@ -186,7 +185,15 @@ class FileUpload extends PolymerElement {
     let reader = new FileReader()
     reader.readAsDataURL(file)
     reader.onloadend = () => {
-      let img = document.createElement('img')
+      let img
+      if (file.type.includes('image')) {
+        img = document.createElement('img')
+        img.setAttribute('style', 'width: 100% !important', 'height: 500px')
+      } else {
+        img = document.createElement('iframe')
+        img.width = '100%'
+        img.height = '500px'
+      }
       img.src = reader.result
       this.gallery.appendChild(img)
     }

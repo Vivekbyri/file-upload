@@ -17,7 +17,7 @@ class FileUpload extends PolymerElement {
         #dropArea {
           border: 2px dashed #ccc;
           border-radius: 20px;
-          width: 480px;
+          width: 250px;
           font-family: sans-serif;
           margin: 100px auto;
           padding: 20px;
@@ -70,7 +70,7 @@ class FileUpload extends PolymerElement {
     return {
       typeOfOutput: {
         type: String,
-        value: 'base64'
+        value: 'formData'
       }
     };
   }
@@ -164,7 +164,7 @@ class FileUpload extends PolymerElement {
         base64: reader.result.split(',')[1],
         name: file.name
       }
-      this.dispatchEvent(new CustomEvent("file-output", {detail: obj}));
+      this.dispatchEvent(new CustomEvent("file-output", {detail: JSON.stringify(obj)}));
     };
     reader.onerror = error => reject(error);
   }
@@ -177,6 +177,16 @@ class FileUpload extends PolymerElement {
       this.dispatchEvent(new CustomEvent("file-output", {detail: fileAsBlob}));
     } else if (this.typeOfOutput == 'base64') {
       this._getBase64(file);
+    } else if (this.typeOfOutput == 'formData') {
+      var formData = new FormData()
+      formData.append('show_table', false)
+      formData.append('output_image_flag', false)
+      formData.append('image', file)
+      var obj = {
+        formData: formData,
+        name: file.name
+      }
+      this.dispatchEvent(new CustomEvent("file-output", {detail: JSON.stringify(obj)}));
     }
     this._progressDone()
   }
@@ -184,6 +194,7 @@ class FileUpload extends PolymerElement {
   _previewFile(file) {
     let reader = new FileReader()
     reader.readAsDataURL(file)
+    console.log(file)
     reader.onloadend = () => {
       let img
       if (file.type.includes('image')) {
